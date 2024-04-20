@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -65,6 +66,7 @@ public class AppController {
         return user;
     }
 
+    @CrossOrigin
     @RequestMapping(value = "/user/{name}", method = RequestMethod.GET)
     public User getUser(@RequestParam String name) {
         User user = userRepository.findFirstByName(name);
@@ -77,6 +79,12 @@ public class AppController {
         mongoTemplate.updateFirst(query, update, "users");
     }
 
+    private void setMongoLongUrl(String userName, String longUrl, String key) {
+        Query query = Query.query(Criteria.where("name").is(userName));
+        Update update = new Update().set(key, longUrl);
+        mongoTemplate.updateFirst(query, update, "users");
+    }
+
     @RequestMapping(value = "/{tiny}/", method = RequestMethod.GET)
     public ModelAndView getTiny(@PathVariable String tiny) throws JsonProcessingException {
         Object tinyRequestStr = redis.get(tiny);
@@ -85,6 +93,8 @@ public class AppController {
             String userName = tinyRequest.getUserName();
             if (userName != null) {
                 incrementMongoField(userName, "allUrlClicks");
+                incrementMongoField(userName, "shorts." + tiny + ".totalClicks");
+                // setMongoLongUrl(userName, tinyRequest.getLongUrl(), "shorts." + tiny + ".longUrl");
                 incrementMongoField(userName,
                         "shorts." + tiny + ".clicks." + Dates.getCurMonth());
                 userClickRepository.save(anUserClick()
@@ -97,6 +107,7 @@ public class AppController {
         }
     }
 
+    @CrossOrigin
     @RequestMapping(value = "/tiny", method = RequestMethod.POST)
     public String generate(@RequestBody NewTinyRequest request) throws JsonProcessingException {
         String tinyCode = generateTinyCode();
@@ -107,6 +118,22 @@ public class AppController {
         }
         if (i == MAX_RETRIES)
             throw new RuntimeException("SPACE IS FULL");
+
+
+        //create user if not exists:
+        User user = userRepository.findFirstByName("noam");
+        // User user = getUser(request.getUserName());
+        if (user == null){
+            user = anUser().withName("noam").build();
+            user = userRepository.insert(user);
+        }
+
+        //add new new url to mongo
+        Object tinyRequestStr = redis.get(tinyCode);
+        NewTinyRequest tinyRequest = om.readValue(tinyRequestStr.toString(), NewTinyRequest.class);
+        String userName = tinyRequest.getUserName();
+        setMongoLongUrl(userName, tinyRequest.getLongUrl(), "shorts." + tinyCode + ".longUrl");
+
         return baseUrl + tinyCode + "/";
     }
 

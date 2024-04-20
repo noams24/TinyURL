@@ -4,3 +4,5 @@ mongo.patch
 cassandra.patch
 /.vscode
 /src/test
+/frontent/.next
+/fronent/node_modules

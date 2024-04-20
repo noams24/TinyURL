@@ -5,14 +5,32 @@ import java.util.Map;
 import java.util.Objects;
 
 public class ShortUrl {
+    private String longUrl;
+    private Integer totalClicks;
     private Map<String, Integer> clicks = new HashMap<>();
 
     public Map<String, Integer> getClicks() {
         return clicks;
     }
 
+    public Integer getTotalClicks() {
+        return totalClicks;
+    }
+
     public void setClicks(Map<String, Integer> clicks) {
         this.clicks = clicks;
+    }
+
+    public void setTotalClicks(Integer totalClicks) {
+        this.totalClicks = totalClicks;
+    }
+
+    public String getLongUrl() {
+        return longUrl;
+    }
+
+    public void setLongUrl(String longUrl) {
+        this.longUrl = longUrl;
     }
 
     @Override
